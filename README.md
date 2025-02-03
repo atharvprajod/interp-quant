@@ -25,13 +25,20 @@ This repository implements a specialized codebase for circuit-aware quantization
 
 ## Repository Structure 
 llama-circuit-quant/
+
 ├── core/
+
 │ ├── quant_layers.py # Custom mixed-precision layers
+
 │ ├── circuit_tracer.py # Tools to trace transformer circuits and attention paths
+
 │ ├── importance_scorer.py # Computes per-layer importance scores using Layer Integrated Gradients
+
 │ └── quant_utils.py # Utilities for dynamic head selection and quantization config loading
+
 ├── configs/
 │ └── llama3-8b.yaml # Model-specific quantization thresholds and settings
+
 ├── scripts/
 │ ├── calibrate.py # Calibration pipeline to compute importance scores
 │ ├── quantize.py # Applies circuit-aware quantization using the computed scores
