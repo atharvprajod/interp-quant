@@ -5,26 +5,23 @@ from captum.attr import LayerIntegratedGradients
 
 class LlamaImportanceScorer:
     def __init__(self, model: LlamaForCausalLM):
-        self.model = model
-        self.model.eval()  # Ensure evaluation mode for attribution
+        self.model = model.to("cuda")  # Ensure model is on GPU
+        self.model.eval()
         for param in self.model.parameters():
-            param.requires_grad = False  # Disable gradients
+            param.requires_grad = False
 
     def _get_layer_attributions(self, layer_idx: int, inputs: torch.Tensor):
         """Compute per-layer attributions using LayerIntegratedGradients."""
-        # Fetch the appropriate transformer layer
         layer = self.model.model.layers[layer_idx]
         lig = LayerIntegratedGradients(self.model, layer)
-        
-        # Create a baseline (all zeros) for attribution calculation
-        baseline = torch.zeros_like(inputs)
+
+        baseline = torch.zeros_like(inputs).to(inputs.device)  # Ensure baseline is on the same device
         attributions = lig.attribute(
             inputs=inputs,
             baselines=baseline,
             n_steps=20,
             return_convergence_delta=False
         )
-        # Aggregate across batch and sequence dimensions (resulting in a d_model vector)
         return attributions.mean(dim=0)
 
     def score_all_layers(self, calib_data: torch.Tensor):
@@ -33,8 +30,7 @@ class LlamaImportanceScorer:
         num_layers = self.model.config.num_hidden_layers
         for idx in tqdm(range(num_layers), desc="Scoring Layers"):
             score = self._get_layer_attributions(idx, calib_data)
-            # Detach and move to CPU so that later modules can use the scores
-            scores[f"layer_{idx}"] = score.detach().cpu()
+            scores[f"layer_{idx}"] = score.detach().cpu()  # Move scores to CPU for later use
         return scores
 
 def trace_attention_paths(model, input_ids, num_heads=4):

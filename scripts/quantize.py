@@ -2,7 +2,7 @@
 import torch
 import argparse
 from transformers import LlamaForCausalLM
-from core.quant_layers import CircuitAwareLinear
+from interp_quant.core.quant_layers import CircuitAwareLinear
 
 def apply_circuit_quant(model, layer_scores, fp16_ratio=0.2):
     """

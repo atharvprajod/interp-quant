@@ -2,7 +2,7 @@
 import torch
 import argparse
 from transformers import LlamaForCausalLM, AutoTokenizer
-from core.importance_scorer import LlamaImportanceScorer
+from interp_quant.core.importance_scorer import LlamaImportanceScorer
 
 def main():
     parser = argparse.ArgumentParser(
@@ -14,15 +14,23 @@ def main():
     args = parser.parse_args()
 
     print("Loading model and tokenizer...")
-    model = LlamaForCausalLM.from_pretrained(args.model)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = LlamaForCausalLM.from_pretrained(args.model).to(device)
     tokenizer = AutoTokenizer.from_pretrained(args.model)
+
+    # Set the padding token
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token  # Use eos_token as pad_token
+        # Alternatively, you can add a new pad token
+        # tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+
     model.eval()
 
     # Prepare calibration data
     print("Preparing calibration data...")
     texts = ["This is a sample calibration input for LLaMA quantization."] * 32
     calib_data = tokenizer(texts, return_tensors="pt", padding=True, truncation=True)
-    input_ids = calib_data.input_ids.to(model.device)
+    input_ids = calib_data.input_ids.to(device)
 
     # Compute importance scores layer-by-layer
     scorer = LlamaImportanceScorer(model)
